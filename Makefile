@@ -1,5 +1,8 @@
 CC = clang
-IDIR = include
+IDIR=include
+SDIR=src
+TDIR=test
+BDIR=build
 INCLUDES = -I$(IDIR)
 
 CFLAGS = -g -Wall $(INCLUDES)
@@ -7,13 +10,16 @@ LDFLAGS = -g
 
 LDLIBS =
 
-src = $(wildcard src/*.c)
-obj = $(src:.c=.o)
+src = $(shell find $(SDIR) -name *.c)
+tsrc = $(shell find $(TDIR) -name *.c)
+obj = $(subst $(SDIR),$(BDIR),$(src:.c=.o))
+tobj = $(subst $(TDIR),$(BDIR),$(tsrc:.c=.o))
 
 emulator: $(obj)
-				$(CC) -o $@ $^ $(LDFLAGS)
+				$(CC) $(obj) -o $@ $(LDFLAGS)
 
-emulator_test: instructions.o instruction_test.o
+$(BDIR)/%.o: $(SDIR)/%.c
+				$(CC) $(CFLAGS) -c -o $@ $<
 
 # emulator: emulator.o
 
