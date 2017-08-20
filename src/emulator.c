@@ -25,7 +25,7 @@ void run(Cpu *cpu) {
 int main(int argc, char **argv) {
   printf("Starting Emulator.\n");
   Cpu *cpu = initialize();
-  uint16_t z = 0x1100 & 0xfff;
+  uint8_t z = (0x1a00 & 0xf00) >> 8;
   store(cpu->mem, 79, 76);
   uint8_t t = load(cpu->mem, 79);
   printf("%d.\n", z);

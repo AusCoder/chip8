@@ -15,22 +15,7 @@ typedef struct {
 } Memory;
 
 typedef struct {
-  uint8_t V0;
-  uint8_t V1;
-  uint8_t V2;
-  uint8_t V3;
-  uint8_t V4;
-  uint8_t V5;
-  uint8_t V6;
-  uint8_t V7;
-  uint8_t V8;
-  uint8_t V9;
-  uint8_t Va;
-  uint8_t Vb;
-  uint8_t Vc;
-  uint8_t Vd;
-  uint8_t Ve;
-  uint8_t Vf;
+  uint8_t *ar;
 } Registers;
 
 typedef struct {
@@ -73,11 +58,15 @@ Cpu *initialize();
 uint8_t store(Memory *mem, address addr, uint8_t val);
 uint8_t load(Memory *mem, address addr);
 void stack_push(Stack *, uint16_t);
+uint16_t stack_top(Stack *);
 
 // execute functions
 int32_t execute_op_code(Cpu *, opcode);
 
 // instructions
 int32_t RET(Cpu *);
+int32_t JMP(Cpu *, uint16_t);
+int32_t CALL(Cpu *, uint16_t);
+int32_t SEVx(Cpu *, uint16_t);
 
 #endif
