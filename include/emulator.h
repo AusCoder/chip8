@@ -16,6 +16,7 @@ typedef struct {
 
 typedef struct {
   uint8_t *ar;
+  uint16_t I;
 } Registers;
 
 typedef struct {
@@ -46,6 +47,10 @@ typedef struct {
   uint32_t time_per_cycle;
 } Clock;
 
+typedef struct {
+  uint8_t *ar;
+} Screen;
+
 typedef uint16_t address;
 
 typedef uint16_t opcode;
@@ -53,20 +58,31 @@ typedef uint16_t opcode;
 // helper cpu functions
 void reset(Cpu *);
 Cpu *initialize();
+Screen *initialize_screen();
+Screen *set_pix(Screen *, uint8_t, uint8_t, uint8_t);
+void print_cpu(Cpu *);
 
 // memory functions
 uint8_t store(Memory *mem, address addr, uint8_t val);
 uint8_t load(Memory *mem, address addr);
 void stack_push(Stack *, uint16_t);
+uint16_t stack_pop(Stack *);
 uint16_t stack_top(Stack *);
 
 // execute functions
-int32_t execute_op_code(Cpu *, opcode);
+int32_t execute_op_code(Cpu *, Screen *, opcode);
 
-// instructions
+// instructions, these could go in a different header file
 int32_t RET(Cpu *);
 int32_t JMP(Cpu *, uint16_t);
 int32_t CALL(Cpu *, uint16_t);
 int32_t SEVx(Cpu *, uint16_t);
+int32_t SNEVx(Cpu *, uint16_t);
+int32_t LDVx(Cpu *, uint16_t);
+int32_t DRW(Cpu *, Screen *, uint16_t);
+
+// ncurses functions
+int draw_screen(Screen *);
+void ncurses_emulator(Cpu *, Screen *);
 
 #endif

@@ -1,5 +1,7 @@
 #include "emulator.h"
 
+uint8_t MAX_VAL = (uint8_t)0xffff;
+
 /*
   Stores val in address and returns previous value.
 */
@@ -14,10 +16,18 @@ uint8_t load(Memory *mem, address addr) {
   return *(mem->ar + addr);
 }
 
-// should put some bounds checking on this...
+/*
+  Stack operations.
+ */
 void stack_push(Stack *stack, uint16_t v) {
   (stack->sp)++;
   stack->ar[stack->sp] = v;
+}
+
+uint16_t stack_pop(Stack *stack) {
+  uint16_t top = stack->ar[stack->sp];
+  (stack->sp)--;
+  return top;
 }
 
 uint16_t stack_top(Stack *stack) {
@@ -32,9 +42,7 @@ uint16_t stack_top(Stack *stack) {
   Return from subroutine. Pop addr from stack, set pc to addr.
 */
 int32_t RET(Cpu *cpu) {
-  uint16_t top = cpu->stack->ar[cpu->stack->sp];
-  (cpu->stack->sp)--;
-  cpu->pc = top;
+  cpu->pc = stack_pop(cpu->stack);
   return 1;
 }
 
@@ -54,8 +62,7 @@ int32_t JMP(Cpu *cpu, uint16_t o) {
 */
 int32_t CALL(Cpu *cpu, uint16_t o) {
   uint16_t subrout_start = o & 0xfff;
-  (cpu->stack->sp)++;
-  cpu->stack->ar[cpu->stack->sp] = cpu->pc;
+  stack_push(cpu->stack, cpu->pc + 2); // TODO: is add 2 correct here?
   cpu->pc = subrout_start;
   return 1;
 }
@@ -71,12 +78,454 @@ int32_t SEVx(Cpu *cpu, uint16_t o) {
   if (vx == kk) {
     cpu->pc += 2;
   }
+  cpu->pc += 2;
+  return 1;
+}
+
+/*
+  op_code - 4xkk
+  Skip if regiser Vx not equal to kk. If Vx != kk, increment pc by 2.
+*/
+int32_t SNEVx(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+  uint8_t kk = o & 0xff;
+  uint8_t vx = cpu->reg->ar[x];
+  if (vx != kk) {
+    cpu->pc += 2;
+  }
+  cpu->pc += 2;
+  return 1;
+}
+
+/*
+  op_code - 5xy0
+  Skip if Vx == Vy. If Vx == Vy, increment pc by 2.
+*/
+int32_t SEVxVy(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+  uint8_t y = (o & 0xf0) >> 4;
+  if (cpu->reg->ar[x] == cpu->reg->ar[y]) {
+    cpu->pc += 2;
+  }
+  cpu->pc += 2;
+  return 1;
+}
+
+/*
+  op_code - 6xkk
+  Set Vx = kk.
+*/
+int32_t LDVx(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+  uint8_t kk = o & 0xff;
+  cpu->reg->ar[x] = kk;
+  cpu->pc += 2;
+  return 1;
+}
+
+/*
+  op_code - 7xkk
+  Set Vx = Vx + kk.
+*/
+int32_t ADDVxKK(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+  uint8_t kk = o & 0xff;
+  cpu->reg->ar[x] += kk;
+  cpu->pc += 2;
+  return 1;
+}
+
+/*
+  op_code - 8xy0
+  Set Vx = Vy.
+*/
+int32_t LDVxVy(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+  uint8_t y = (o & 0xf0) >> 4;
+  cpu->reg->ar[x] = cpu->reg->ar[y];
+  cpu->pc += 2;
+  return 1;
+}
+
+/*
+  op_code - 8xy1
+  Set Vx = Vx OR Vy.
+*/
+int32_t ORVxVy(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+  uint8_t y = (o & 0xf0) >> 4;
+  cpu->reg->ar[x] = cpu->reg->ar[x] | cpu->reg->ar[y];
+  cpu->pc += 2;
+  return 1;
+}
+
+/*
+  op_code - 8xy2
+  Set Vx = Vx AND Vy.
+*/
+int32_t ANDVxVy(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+  uint8_t y = (o & 0xf0) >> 4;
+  cpu->reg->ar[x] = cpu->reg->ar[x] & cpu->reg->ar[y];
+  cpu->pc += 2;
+  return 1;
+}
+
+/*
+  op_code - 8xy3
+  Set Vx = Vx XOR Vy.
+*/
+int32_t XORVxVy(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+  uint8_t y = (o & 0xf0) >> 4;
+  cpu->reg->ar[x] = cpu->reg->ar[x] ^ cpu->reg->ar[y];
+  cpu->pc += 2;
+  return 1;
+}
+
+/*
+  op_code - 8xy4
+  Set Vx = Vx + Vy. Set Vf = carry.
+*/
+int32_t ADDVxVy(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+  uint8_t y = (o & 0xf0) >> 4;
+  uint8_t vx = cpu->reg->ar[x];
+  uint8_t vy = cpu->reg->ar[y];
+  cpu->reg->ar[x] = vx + vy;
+  if (x > MAX_VAL - y) {
+    cpu->reg->ar[0xf] = 1;
+  } else {
+    cpu->reg->ar[0xf] = 0;
+  }
+  cpu->pc += 2;
+  return 1;
+}
+
+/*
+  op_code - 8xy5
+  Set Vx = Vx - Vy. If Vx > Vy, set Vf = 1, else Vf = 0.
+*/
+int32_t SUBVxVy(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+  uint8_t y = (o & 0xf0) >> 4;
+  uint8_t vx = cpu->reg->ar[x];
+  uint8_t vy = cpu->reg->ar[y];
+  cpu->reg->ar[x] = vx - vy;
+  if (vx > vy) {
+    cpu->reg->ar[0xf] = 1;
+  } else {
+    cpu->reg->ar[0xf] = 0;
+  }
+  cpu->pc += 2;
+  return 1;
+}
+
+/*
+  op_code - 8xy6
+  Logical shift right. Set Vx = Vx SHR 1, set Vf = 1 if lsb of Vx is 1, else Vf = 0.
+*/
+int32_t SHRVx(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+  uint8_t vx = cpu->reg->ar[x];
+  cpu->reg->ar[x] = vx >> 1;
+  cpu->reg->ar[0xf] = vx & 0x1; // TODO: is this right?
+  cpu->pc += 2;
+  return 1;
+}
+
+/*
+  op_code - 8xy7
+  Set Vx = Vy - Vx. If Vy > Vx, Vf = 1 else Vf = 0.
+*/
+int32_t SUBNVxVy(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+  uint8_t y = (o & 0xf0) >> 4;
+  uint8_t vx = cpu->reg->ar[x];
+  uint8_t vy = cpu->reg->ar[y];
+  cpu->reg->ar[x] = vy - vx;
+  if (vy > vx) {
+    cpu->reg->ar[0xf] = 0x1;
+  } else {
+    cpu->reg->ar[0xf] = 0x0;
+  }
+  cpu->pc += 2;
+  return 1;
+}
+
+/*
+  op_code - 8xye
+  Logical shift left. Set Vx = Vy SHL 1, set Vf = 1 if msb of Vx is 1, else Vf = 0.
+*/
+int32_t SHLVx(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+  uint8_t vx = cpu->reg->ar[x];
+  cpu->reg->ar[x] = vx << 1;
+  cpu->reg->ar[0xf] = vx & 0x80; // TODO: is this right?
+  cpu->pc += 2;
+  return 1;
+}
+
+/*
+  op_code - 9xy0
+  Skip next instruction if Vx != Vy.
+*/
+int32_t SNEVxVy(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+  uint8_t y = (o & 0xf0) >> 4;
+  uint8_t vx = cpu->reg->ar[x];
+  uint8_t vy = cpu->reg->ar[y];
+  if (vx != vy) {
+    cpu->pc += 2;
+  }
+  cpu->pc += 2;
+  return 1;
+}
+
+/*
+  op_code - annnn
+  Set register I = nnn.
+*/
+int32_t SetI(Cpu *cpu, uint16_t o) {
+  uint16_t nnn = o & 0xfff;
+  cpu->reg->I = nnn;
+  cpu->pc += 2;
+  return 1;
+}
+
+/*
+  op_code - bnnn
+  Jump to location nnn + V0. Set pc to V0 + nnn.
+*/
+int32_t JMPV0(Cpu *cpu, uint16_t o) {
+  uint16_t nnn = o & 0xfff;
+  uint16_t v0 = (uint16_t)cpu->reg->ar[0x0];
+  cpu->pc = nnn + v0;
+  return 1;
+}
+
+/*
+  op_code - cxkk
+  Set Vx = RAND_BYTE & 0xkk.
+*/
+int32_t RANDVx(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+  uint8_t kk = o & 0xff;
+  uint8_t r = (uint8_t)rand(); // TODO: change this random number
+  cpu->reg->ar[x] = kk & r;
+  cpu->pc += 2;
+  return 1;
+}
+
+/*
+  op_code - dxyn
+  Display n byte sprite starting at memory location I at (Vx, Vy), set Vf = collision.
+*/
+int32_t DRW(Cpu *cpu, Screen *scr, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+  uint8_t y = (o & 0xf0) >> 4;
+  uint8_t vx = cpu->reg->ar[x];
+  uint8_t vy = cpu->reg->ar[y];
+  uint8_t n = o & 0xf;
+  uint8_t i;
+  for(i=0; i<n; i++) {
+    uint8_t img_byte = load(cpu->mem, cpu->reg->I + i);
+    int c;
+    for(c=0; c<8; c++) {
+      uint8_t pix = (img_byte >> (7-c)) & 0x1;
+      uint8_t pix_x = vx+c;
+      uint8_t pix_y = vy+i;
+      set_pix(scr, pix, pix_x, pix_y); // TODO: need to add collision detection
+    }
+  }
+  cpu->pc+=2;
+  return 1;
+}
+
+/*
+  op_code - ex9e
+  Skip next instruction if key with value of Vx is pressed.
+*/
+int32_t SKPVx(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+
+  return 1;
+}
+
+/*
+  op_code - exa1
+  Skip next instruction if key with value of Vx is not pressed.
+*/
+int32_t SKNPVx(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+
+  return 1;
+}
+
+/*
+  op_code - fx07
+  Set Vx = delay timer value.
+*/
+int32_t LDVxDT(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+  cpu->reg->ar[x] = cpu->delay_timer;
+  cpu->pc+=2;
+  return 1;
+}
+
+/*
+  op_code - fx0a
+  Wait for a key press, store it in Vx.
+*/
+// TODO: this is a blocking operation. need to add blocking.
+int32_t LDVxK(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+
+  return 1;
+}
+
+/*
+  op_code - fx15
+  Set delay_timer = Vx.
+*/
+int32_t LDDTVx(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+  cpu->delay_timer = cpu->reg->ar[x];
+  cpu->pc+=2;
+  return 1;
+}
+
+/*
+  op_code - fx18
+  Set sound_timer = Vx.
+*/
+int32_t LDSTVx(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+  cpu->sound_timer = cpu->reg->ar[x];
+  cpu->pc+=2;
+  return 1;
+}
+
+/*
+  op_code - fx1e
+  Set I = I + Vx.
+*/
+int32_t ADDIVx(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+  cpu->reg->I += cpu->reg->ar[x];
+  cpu->pc+=2;
+  return 1;
+}
+
+/*
+  op_code - fx29
+  Set I = location of sprite for digit Vx.
+*/
+// TODO: write digit sprites in memory 0x0 to 0x1ff
+int32_t LDFVx(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+  //  cpu->reg->I += cpu->reg->ar[x];
+  cpu->pc+=2;
+  return 1;
+}
+
+/*
+  op_code - fx33
+  Take decimal value of Vx. Store hundreds in I, tens in I+1, uints in I+2.
+*/
+int32_t LDBVx(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+  uint16_t vx = cpu->reg->ar[x];
+  address i = cpu->reg->I;
+  store(cpu->mem, i, (vx % 1000) / 100);
+  store(cpu->mem, i+1, (vx % 100) / 10);
+  store(cpu->mem, i+2, vx % 10);
+  cpu->pc += 2;
+  return 1;
+}
+
+/*
+  op_code - fx55
+  Store registers V0 to Vx in memory, starting at I.
+*/
+int32_t LDIVx(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+  address i = cpu->reg->I;
+  uint8_t j;
+  for(j=0; j<=x; j++) {
+    store(cpu->mem, i+j, cpu->reg->ar[j]); // TODO: check this, does an offset need to be respected?
+  }
+  cpu->pc += 2;
+  return 1;
+}
+
+/*
+  op_code - fx65
+  Read values from memory location I into registers V0 to Vx.
+*/
+int32_t LDVxI(Cpu *cpu, uint16_t o) {
+  uint8_t x = (o & 0xf00) >> 8;
+  uint16_t i = cpu->reg->I;
+  uint8_t j;
+  for(j=0; j<=x; j++) {
+    cpu->reg->ar[j] = load(cpu->mem, i+j);
+  }
+  cpu->pc += 2;
   return 1;
 }
 
 /*
   This executes an op code and changes the cpu state.
 */
-int32_t execute_op_code(Cpu *cpu, opcode o) {
+int32_t execute_op_code(Cpu *cpu, Screen *scr, uint16_t o) {
+  switch (o & 0xf000) {
+  case 0x0000:
+    RET(cpu);
+    break;
+  case 0x1000:
+    JMP(cpu, o);
+    break;
+  case 0x2000:
+    CALL(cpu, o);
+    break;
+  case 0x3000:
+    SEVx(cpu, o);
+    break;
+  case 0x4000:
+    SNEVx(cpu, o);
+    break;
+  case 0x5000:
+    SEVxVy(cpu, o);
+    break;
+  case 0x6000:
+    LDVx(cpu, o);
+    break;
+  case 0x7000:
+    ADDVxKK(cpu, o);
+    break;
+  case 0x8000: {
+    // put another switch statement in here
+    break;
+  }
+  case 0x9000:
+    SNEVxVy(cpu, o);
+    break;
+  case 0xa000:
+    SetI(cpu, o);
+    break;
+  case 0xb000:
+    JMPV0(cpu, o);
+    break;
+  case 0xc000:
+    RANDVx(cpu, o);
+    break;
+  case 0xd000:
+    DRW(cpu, scr, o);
+    break;
+  case 0xe000:
+    break;
+  case 0xf000:
+    break;
+  }
   return 1;
 }
