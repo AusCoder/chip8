@@ -1,5 +1,5 @@
 #include "emulator.h"
-#include <ncurses.h>
+#include "ncurses_io.h"
 
 // ncurses graphics, these could go in a different header file
 uint8_t CHIP8_SCR_SIZE_X = 64;

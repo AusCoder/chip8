@@ -1,4 +1,5 @@
 #include "emulator.h" // how to fix this red?
+#include "ncurses_io.h"
 
 /*
     Questions:
@@ -14,6 +15,9 @@ void run(Cpu *cpu, Screen *scr) {
     uint8_t lsb = load(cpu->mem, addr_nxt_instr + 1);
     opcode op_code = msb << 8 | lsb;
     int32_t cycles = execute_op_code(cpu, scr, op_code);
+    draw_screen(scr);
+    refresh();
+    usleep(2000);
     /* if (cycles < 0) { */
     /*   printf("An error occured executing op_code: %d.", cycles); */
       /* sys.exit(1); */
@@ -30,11 +34,14 @@ int main(int argc, char **argv) {
   printf("Starting Emulator.\n");
   Cpu *cpu = initialize();
   Screen *scr = initialize_screen();
+  load_rom(cpu, "/Users/seb/code/fun/chip8_emulator/data/breakout.ch8");
 
   print_cpu(cpu);
-  LDVx(cpu, 0x6207);
-  LDVx(cpu, 0x6501);
-  DRW(cpu, scr, 0xd255);
-  ncurses_emulator(cpu, scr);
+
+  // run the rom
+  initscr();
+  run(cpu, scr);
+  endwin();
+
   return 0;
 }

@@ -30,5 +30,5 @@ $(TBDIR)/%.o: $(TDIR)/%.c
 
 .PHONY: clean
 clean:
-				rm -f $(obj) $(tobj) a.out core emulator
+				rm -f $(obj) $(tobj) a.out core emulator instructions_test
 

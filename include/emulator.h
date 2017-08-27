@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <unistd.h>
 
 typedef struct {
   uint8_t *ar;
@@ -61,6 +62,7 @@ Cpu *initialize();
 Screen *initialize_screen();
 Screen *set_pix(Screen *, uint8_t, uint8_t, uint8_t);
 void print_cpu(Cpu *);
+int load_rom(Cpu *, const char *);
 
 // memory functions
 uint8_t store(Memory *mem, address addr, uint8_t val);
@@ -80,9 +82,5 @@ int32_t SEVx(Cpu *, uint16_t);
 int32_t SNEVx(Cpu *, uint16_t);
 int32_t LDVx(Cpu *, uint16_t);
 int32_t DRW(Cpu *, Screen *, uint16_t);
-
-// ncurses functions
-int draw_screen(Screen *);
-void ncurses_emulator(Cpu *, Screen *);
 
 #endif

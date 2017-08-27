@@ -349,6 +349,7 @@ int32_t DRW(Cpu *cpu, Screen *scr, uint16_t o) {
 int32_t SKPVx(Cpu *cpu, uint16_t o) {
   uint8_t x = (o & 0xf00) >> 8;
 
+  cpu->pc += 2;
   return 1;
 }
 
@@ -359,6 +360,7 @@ int32_t SKPVx(Cpu *cpu, uint16_t o) {
 int32_t SKNPVx(Cpu *cpu, uint16_t o) {
   uint8_t x = (o & 0xf00) >> 8;
 
+  cpu->pc += 2;
   return 1;
 }
 
@@ -381,6 +383,7 @@ int32_t LDVxDT(Cpu *cpu, uint16_t o) {
 int32_t LDVxK(Cpu *cpu, uint16_t o) {
   uint8_t x = (o & 0xf00) >> 8;
 
+  cpu->pc += 2;
   return 1;
 }
 
@@ -421,10 +424,10 @@ int32_t ADDIVx(Cpu *cpu, uint16_t o) {
   op_code - fx29
   Set I = location of sprite for digit Vx.
 */
-// TODO: write digit sprites in memory 0x0 to 0x1ff
 int32_t LDFVx(Cpu *cpu, uint16_t o) {
   uint8_t x = (o & 0xf00) >> 8;
-  //  cpu->reg->I += cpu->reg->ar[x];
+  // digits are sequential, of size 5 bytes, starting at 0x0
+  cpu->reg->I = cpu->reg->ar[x] * 5;
   cpu->pc+=2;
   return 1;
 }
@@ -478,54 +481,121 @@ int32_t LDVxI(Cpu *cpu, uint16_t o) {
   This executes an op code and changes the cpu state.
 */
 int32_t execute_op_code(Cpu *cpu, Screen *scr, uint16_t o) {
+  int32_t i = 0;
   switch (o & 0xf000) {
   case 0x0000:
-    RET(cpu);
+    i = RET(cpu);
     break;
   case 0x1000:
-    JMP(cpu, o);
+    i = JMP(cpu, o);
     break;
   case 0x2000:
-    CALL(cpu, o);
+    i = CALL(cpu, o);
     break;
   case 0x3000:
-    SEVx(cpu, o);
+    i = SEVx(cpu, o);
     break;
   case 0x4000:
-    SNEVx(cpu, o);
+    i = SNEVx(cpu, o);
     break;
   case 0x5000:
-    SEVxVy(cpu, o);
+    i = SEVxVy(cpu, o);
     break;
   case 0x6000:
-    LDVx(cpu, o);
+    i = LDVx(cpu, o);
     break;
   case 0x7000:
-    ADDVxKK(cpu, o);
+    i = ADDVxKK(cpu, o);
     break;
   case 0x8000: {
-    // put another switch statement in here
+    switch (o & 0xf) {
+    case 0x0:
+      i = LDVxVy(cpu, o);
+      break;
+    case 0x1:
+      i = ORVxVy(cpu, o);
+      break;
+    case 0x2:
+      i = ANDVxVy(cpu, o);
+      break;
+    case 0x3:
+      i = XORVxVy(cpu, o);
+      break;
+    case 0x4:
+      i = ANDVxVy(cpu, o);
+      break;
+    case 0x5:
+      i = SUBVxVy(cpu, o);
+      break;
+    case 0x6:
+      i = SHRVx(cpu, o);
+      break;
+    case 0x7:
+      i = SUBNVxVy(cpu, o);
+      break;
+    case 0xe:
+      i = SHLVx(cpu, o);
+      break;
+    }
     break;
   }
   case 0x9000:
-    SNEVxVy(cpu, o);
+    i = SNEVxVy(cpu, o);
     break;
   case 0xa000:
-    SetI(cpu, o);
+    i = SetI(cpu, o);
     break;
   case 0xb000:
-    JMPV0(cpu, o);
+    i = JMPV0(cpu, o);
     break;
   case 0xc000:
-    RANDVx(cpu, o);
+    i = RANDVx(cpu, o);
     break;
   case 0xd000:
-    DRW(cpu, scr, o);
+    i = DRW(cpu, scr, o);
     break;
-  case 0xe000:
+  case 0xe000: {
+    switch (o & 0xff) {
+    case 0x93:
+      i = SKNPVx(cpu, o);
+      break;
+    case 0xa1:
+      i = SKNPVx(cpu, o);
+      break;
+    }
     break;
+    }
   case 0xf000:
+    switch (o & 0xff) {
+    case 0x07:
+      i = LDVxDT(cpu, o);
+      break;
+    case 0x0a:
+      i = LDVxK(cpu, o);
+      break;
+    case 0x15:
+      i = LDDTVx(cpu, o);
+      break;
+    case 0x18:
+      i = LDSTVx(cpu, o);
+      break;
+    case 0x1e:
+      i = ADDIVx(cpu, o);
+      break;
+    case 0x29:
+      i = LDFVx(cpu, o);
+      break;
+    case 0x33:
+      i = LDBVx(cpu, o);
+      break;
+    case 0x55:
+      i = LDIVx(cpu, o);
+      break;
+    case 0x65:
+      i = LDVxI(cpu, o);
+      break;
+    }
     break;
   }
-  return 1;
+  return i;
 }
