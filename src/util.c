@@ -1,6 +1,11 @@
 #include "emulator.h"
 #include <string.h>
 
+int RAM_SIZE = 4096;
+int REG_SIZE = 16;
+int STACK_SIZE = 16;
+int SCREEN_BYTES = 64 * 32;
+
 uint8_t zero[5] = {0xf0, 0x90, 0x90, 0x90, 0xf0};
 uint8_t one[5] = {0x20, 0x60, 0x20, 0x20, 0x70};
 uint8_t two[5] = {0xf0, 0x10, 0xf0, 0x80, 0xf0};
@@ -17,15 +22,6 @@ uint8_t twelve[5] = {0xf0, 0x80, 0x80, 0x80, 0xf0};
 uint8_t thirteen[5] = {0xe0, 0x90, 0x90, 0x90, 0xe0};
 uint8_t fourteen[5] = {0xf0, 0x80, 0xf0, 0x80, 0xf0};
 uint8_t fifteen[5] = {0xf0, 0x80, 0xf0, 0x80, 0x80};
-
-void reset(Cpu *cpu) {
-  cpu->stack->sp = 0;
-  cpu->pc = 0x200;
-  cpu->delay_timer = 0;
-  cpu->sound_timer = 0;
-  cpu->reg->I = 0;
-  // reset registers too
-}
 
 void load_fonts(Cpu *cpu) {
   memcpy(cpu->mem->ar, zero, 5);
@@ -46,10 +42,19 @@ void load_fonts(Cpu *cpu) {
   memcpy(cpu->mem->ar+75, fifteen, 5);
 }
 
+void reset(Cpu *cpu) {
+  cpu->stack->sp = 0;
+  cpu->pc = 0x200;
+  cpu->delay_timer = 0;
+  cpu->sound_timer = 0;
+  cpu->reg->I = 0;
+  int i;
+  for (i=0; i<REG_SIZE; i++) {
+    cpu->reg->ar[i] = 0;
+  }
+}
+
 Cpu *initialize() {
-  int RAM_SIZE = 4096;
-  int REG_SIZE = 16;
-  int STACK_SIZE = 16;
   // allocate ram
   uint8_t *ar = (uint8_t *)malloc(RAM_SIZE * sizeof(uint8_t));
   Memory *mem = (Memory *)malloc(sizeof(Memory));
@@ -73,23 +78,28 @@ Cpu *initialize() {
   return cpu;
 }
 
+void clear_screen(Screen *scr) {
+  int i;
+  for(i=0; i<SCREEN_BYTES; i++) {
+    scr->ar[i] = 0x0;
+  }
+}
+
 Screen *initialize_screen() {
-  int SCREEN_BYTES = 64 * 32;
   uint8_t *ar = (uint8_t *)malloc(SCREEN_BYTES * sizeof(uint8_t));
   Screen *scr = (Screen *)malloc(sizeof(Screen));
   scr->ar = ar;
-  int i;
-  for(i=0; i<SCREEN_BYTES; i++) {
-    ar[i] = 0x0;
-  }
+  clear_screen(scr);
   return scr;
 }
 
-Screen *set_pix(Screen *scr, uint8_t pix, uint8_t pix_x, uint8_t pix_y) {
+int set_pix(Screen *scr, uint8_t pix, uint8_t pix_x, uint8_t pix_y) {
   uint32_t idx = pix_y*64 + pix_x;
+  int out;
+  if (scr->ar[])
   scr->ar[idx] = pix;
   // TODO: add colision detection here
-  return scr;
+  return 0;
 }
 
 void print_cpu(Cpu *cpu) {
@@ -106,6 +116,15 @@ void print_cpu(Cpu *cpu) {
   }
 }
 
+int load_rom(Cpu *cpu, const char *filename) {
+  FILE *fp = fopen(filename, "r");
+  uint8_t bs[1000];
+  int n = fread(bs, sizeof(uint8_t), 1000, fp);
+  fclose(fp);
+  memcpy(cpu->mem->ar + 0x200, bs, n);
+  return 0;
+}
+
 // TODO: write a silly program:
 // set vx = 0.
 // set I = font location of vx.
@@ -118,13 +137,5 @@ uint16_t *counting_program() {
   uint16_t i = 0;
   prog[i++] = 0x6000;
   prog[i++] = 0xf029;
-}
-
-int load_rom(Cpu *cpu, const char *filename) {
-  FILE *fp = fopen(filename, "r");
-  uint8_t bs[1000];
-  int n = fread(bs, sizeof(uint8_t), 1000, fp);
-  fclose(fp);
-  memcpy(cpu->mem->ar + 0x200, bs, n);
-  return 0;
+  return prog;
 }

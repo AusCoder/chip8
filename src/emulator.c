@@ -28,9 +28,6 @@ void run(Cpu *cpu, Screen *scr) {
 
 
 int main(int argc, char **argv) {
-  uint8_t z = 1 << 3;
-  printf("%d.\n", z);
-
   printf("Starting Emulator.\n");
   Cpu *cpu = initialize();
   Screen *scr = initialize_screen();

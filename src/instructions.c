@@ -37,6 +37,16 @@ uint16_t stack_top(Stack *stack) {
 /*
   Chip-8 instructions - encoded as functions
  */
+
+/*
+  op_code - 00e0
+  Clear the screen.
+*/
+int32_t CLS(Screen *scr) {
+  clear_screen(scr);
+  return 1;
+}
+
 /*
   op_code - 00ee
   Return from subroutine. Pop addr from stack, set pc to addr.
@@ -346,6 +356,7 @@ int32_t DRW(Cpu *cpu, Screen *scr, uint16_t o) {
   op_code - ex9e
   Skip next instruction if key with value of Vx is pressed.
 */
+// TODO: Do this keyboard opcode.
 int32_t SKPVx(Cpu *cpu, uint16_t o) {
   uint8_t x = (o & 0xf00) >> 8;
 
@@ -357,6 +368,7 @@ int32_t SKPVx(Cpu *cpu, uint16_t o) {
   op_code - exa1
   Skip next instruction if key with value of Vx is not pressed.
 */
+// TODO: Do this keyboard opcode.
 int32_t SKNPVx(Cpu *cpu, uint16_t o) {
   uint8_t x = (o & 0xf00) >> 8;
 
@@ -379,7 +391,7 @@ int32_t LDVxDT(Cpu *cpu, uint16_t o) {
   op_code - fx0a
   Wait for a key press, store it in Vx.
 */
-// TODO: this is a blocking operation. need to add blocking.
+// TODO: Do this keyboard opcode. need to add blocking.
 int32_t LDVxK(Cpu *cpu, uint16_t o) {
   uint8_t x = (o & 0xf00) >> 8;
 
@@ -483,9 +495,17 @@ int32_t LDVxI(Cpu *cpu, uint16_t o) {
 int32_t execute_op_code(Cpu *cpu, Screen *scr, uint16_t o) {
   int32_t i = 0;
   switch (o & 0xf000) {
-  case 0x0000:
-    i = RET(cpu);
+  case 0x0000: {
+    switch (0 & 0xff) {
+    case 0xe0:
+      i = CLS(scr);
+      break;
+    case 0xee:
+      i = RET(cpu);
+      break;
+    }
     break;
+  }
   case 0x1000:
     i = JMP(cpu, o);
     break;
