@@ -60,7 +60,7 @@ typedef uint16_t opcode;
 void reset(Cpu *);
 Cpu *initialize();
 Screen *initialize_screen();
-Screen *set_pix(Screen *, uint8_t, uint8_t, uint8_t);
+int set_pix(Screen *, uint8_t, uint8_t, uint8_t);
 void clear_screen(Screen *);
 void print_cpu(Cpu *);
 int load_rom(Cpu *, const char *);

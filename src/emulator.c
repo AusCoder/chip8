@@ -17,7 +17,7 @@ void run(Cpu *cpu, Screen *scr) {
     int32_t cycles = execute_op_code(cpu, scr, op_code);
     draw_screen(scr);
     refresh();
-    usleep(2000);
+    usleep(200);
     /* if (cycles < 0) { */
     /*   printf("An error occured executing op_code: %d.", cycles); */
       /* sys.exit(1); */
@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
   printf("Starting Emulator.\n");
   Cpu *cpu = initialize();
   Screen *scr = initialize_screen();
-  load_rom(cpu, "/Users/seb/code/fun/chip8_emulator/data/breakout.ch8");
+  load_rom(cpu, argv[1]);
 
   print_cpu(cpu);
 

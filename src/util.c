@@ -96,7 +96,7 @@ Screen *initialize_screen() {
 int set_pix(Screen *scr, uint8_t pix, uint8_t pix_x, uint8_t pix_y) {
   uint32_t idx = pix_y*64 + pix_x;
   int out;
-  if (scr->ar[])
+  /* if (scr->ar[]) */
   scr->ar[idx] = pix;
   // TODO: add colision detection here
   return 0;
@@ -118,10 +118,15 @@ void print_cpu(Cpu *cpu) {
 
 int load_rom(Cpu *cpu, const char *filename) {
   FILE *fp = fopen(filename, "r");
-  uint8_t bs[1000];
-  int n = fread(bs, sizeof(uint8_t), 1000, fp);
+  int CHUNK=1000;
+  uint8_t bs[CHUNK];
+  int bs_read;
+  int offset = 0x200;
+  while ((bs_read = fread(bs, sizeof(uint8_t), CHUNK, fp)) != 0) {
+    memcpy(cpu->mem->ar + offset, bs, bs_read);
+    offset += bs_read;
+  }
   fclose(fp);
-  memcpy(cpu->mem->ar + 0x200, bs, n);
   return 0;
 }
 

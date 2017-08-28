@@ -42,8 +42,9 @@ uint16_t stack_top(Stack *stack) {
   op_code - 00e0
   Clear the screen.
 */
-int32_t CLS(Screen *scr) {
+int32_t CLS(Cpu *cpu, Screen *scr) {
   clear_screen(scr);
+  cpu->pc += 2;
   return 1;
 }
 
@@ -498,7 +499,7 @@ int32_t execute_op_code(Cpu *cpu, Screen *scr, uint16_t o) {
   case 0x0000: {
     switch (0 & 0xff) {
     case 0xe0:
-      i = CLS(scr);
+      i = CLS(cpu, scr);
       break;
     case 0xee:
       i = RET(cpu);
