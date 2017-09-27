@@ -1,5 +1,35 @@
 #include "emulator.h"
 
+extern int RAM_SIZE;
+
+int store_load_test(Cpu *cpu) {
+  reset(cpu);
+  address addr = (address)rand() % RAM_SIZE;
+  uint8_t val = (uint8_t)rand();
+  /* printf("Store test: random address is: %d, random value is: %d\n", addr, val); */
+  store(cpu->mem, addr, val);
+  uint8_t out = load(cpu->mem, addr);
+  if (out != val) {
+    return 1;
+  }
+  // TODO: change this to return an error object
+  return 0;
+}
+
+int stack_test(Cpu *cpu) {
+  reset(cpu);
+  uint16_t val = (uint16_t)rand();
+  // TODO: randomise stack depth
+  stack_push(cpu->stack, val);
+  if (stack_top(cpu->stack) != val) {
+    return 1;
+  }
+  uint16_t out = stack_pop(cpu->stack);
+  if (out != val) {
+    return 1;
+  }
+  return 0;
+}
 
 int RET_test(Cpu *cpu) {
   reset(cpu);
@@ -96,9 +126,12 @@ void print_result(int res, char *name) {
 }
 
 int main(int argc, char **argv) {
+  sranddev();
   Cpu *cpu = initialize();
   printf("Running tests.\n");
 
+  print_result(store_load_test(cpu), "store_load");
+  print_result(stack_test(cpu), "stack");
   print_result(RET_test(cpu), "RET");
   print_result(JMP_test(cpu), "JMP");
   print_result(CALL_test(cpu), "CALL");

@@ -20,6 +20,7 @@ uint8_t load(Memory *mem, address addr) {
   Stack operations.
  */
 void stack_push(Stack *stack, uint16_t v) {
+  // TODO: this should error somehow, if the stack depth is too big
   (stack->sp)++;
   stack->ar[stack->sp] = v;
 }

@@ -1,34 +1,35 @@
-CC = clang
-IDIR=include
-SDIR=src
-BDIR=build
-TDIR=test
-TBDIR=build_test
-INCLUDES = -I$(IDIR)
+#CC := clang++ --std=c++14 #--analyze # and comment out the linker last line for sanity
+CC := clang --std=c99 #--analyze # and comment out the linker last line for sanity
+SRCDIR := src
+BUILDDIR := build
+TARGET := bin/runner
 
-CFLAGS = -g -Wall $(INCLUDES)
-LDLIBS = -lncurses
-LDFLAGS = -g
+SRCEXT := c
+SOURCES := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
+OBJECTS := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
+CFLAGS := -g -Wall
+LIB := -lncurses
+# LIB := -pthread -lmongoclient -L lib -lboost_thread-mt -lboost_filesystem-mt -lboost_system-mt
+INC := -I include
 
+$(TARGET): $(OBJECTS)
+	@echo " Linking..."
+	@echo " $(CC) $^ -o $(TARGET) $(LIB)"; $(CC) $^ -o $(TARGET) $(LIB)
 
-src = $(shell find $(SDIR) -name *.c)
-tsrc = $(shell find $(TDIR) -name *.c)
-obj = $(subst $(SDIR),$(BDIR),$(src:.c=.o))
-tobj = $(filter-out $(BDIR)/emulator.o,$(obj)) $(subst $(TDIR),$(TBDIR),$(tsrc:.c=.o))
+$(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)
+	@mkdir -p $(BUILDDIR)
+	@echo " $(CC) $(CFLAGS) $(INC) -c -o $@ $<"; $(CC) $(CFLAGS) $(INC) -c -o $@ $<
 
-emulator: $(obj)
-				$(CC) $(obj) -o $@ $(LDFLAGS) $(LDLIBS)
+clean:
+	@echo " Cleaning...";
+	@echo " $(RM) -r $(BUILDDIR) $(TARGET)"; $(RM) -r $(BUILDDIR) $(TARGET)
 
-instructions_test: $(tobj)
-				$(CC) $(tobj) -o $@ $(LDFLAGS)
+# Tests
+tester:
+	$(CC) $(CFLAGS) test/tester.cpp $(INC) $(LIB) -o bin/tester
 
-$(BDIR)/%.o: $(SDIR)/%.c
-				$(CC) $(CFLAGS) -c -o $@ $<
-
-$(TBDIR)/%.o: $(TDIR)/%.c
-				$(CC) $(CFLAGS) -c -o $@ $<
+# Spikes
+ticket:
+	$(CC) $(CFLAGS) spikes/ticket.cpp $(INC) $(LIB) -o bin/ticket
 
 .PHONY: clean
-clean:
-				rm -f $(obj) $(tobj) a.out core emulator instructions_test
-
