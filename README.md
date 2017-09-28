@@ -3,3 +3,14 @@ http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#8xy2
 
 ### Roms
 https://github.com/dmatlack/chip8/tree/master/roms/games
+
+### SDL2
+Installing on mac os using homebrew:
+```
+brew install sdl2
+```
+Paths to the header files and library files can be found using:
+```
+sdl2-config --cflags
+sdl2-config --libs
+```

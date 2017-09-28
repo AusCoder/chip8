@@ -11,6 +11,14 @@
 #include <stdint.h>
 #include <unistd.h>
 
+// constants
+int RAM_SIZE;
+int REG_SIZE;
+int STACK_SIZE;
+int SCREEN_WIDTH;
+int SCREEN_HEIGHT;
+
+// structs
 typedef struct {
   uint8_t *ar;
 } Memory;
@@ -50,6 +58,7 @@ typedef struct {
 
 typedef struct {
   uint8_t *ar;
+  // TODO: add a changed bool here, so that we only have to redraw the screen if something changed! That would be fun.
 } Screen;
 
 typedef uint16_t address;
@@ -58,8 +67,10 @@ typedef uint16_t opcode;
 
 // helper cpu functions
 void reset(Cpu *);
-Cpu *initialize();
+Cpu *initialize_cpu();
+void destroy_cpu(Cpu *);
 Screen *initialize_screen();
+void destroy_screen(Screen *);
 int set_pix(Screen *, uint8_t, uint8_t, uint8_t);
 void clear_screen(Screen *);
 void print_cpu(Cpu *);

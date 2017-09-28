@@ -127,7 +127,7 @@ void print_result(int res, char *name) {
 
 int main(int argc, char **argv) {
   sranddev();
-  Cpu *cpu = initialize();
+  Cpu *cpu = initialize_cpu();
   printf("Running tests.\n");
 
   print_result(store_load_test(cpu), "store_load");
@@ -138,5 +138,6 @@ int main(int argc, char **argv) {
   print_result(SEVx_test(cpu), "SEVx");
   print_result(SNEVx_test(cpu), "SNEVx");
 
+  destroy_cpu(cpu);
   printf("Tests completed.\n");
 }

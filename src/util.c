@@ -4,7 +4,8 @@
 int RAM_SIZE = 4096;
 int REG_SIZE = 16;
 int STACK_SIZE = 16;
-int SCREEN_BYTES = 64 * 32;
+int SCREEN_WIDTH = 64;
+int SCREEN_HEIGHT = 32;
 
 uint8_t zero[5] = {0xf0, 0x90, 0x90, 0x90, 0xf0};
 uint8_t one[5] = {0x20, 0x60, 0x20, 0x20, 0x70};
@@ -54,7 +55,7 @@ void reset(Cpu *cpu) {
   }
 }
 
-Cpu *initialize() {
+Cpu *initialize_cpu() {
   // allocate ram
   uint8_t *ar = (uint8_t *)malloc(RAM_SIZE * sizeof(uint8_t));
   Memory *mem = (Memory *)malloc(sizeof(Memory));
@@ -78,19 +79,20 @@ Cpu *initialize() {
   return cpu;
 }
 
-void clear_screen(Screen *scr) {
-  int i;
-  for(i=0; i<SCREEN_BYTES; i++) {
-    scr->ar[i] = 0x0;
-  }
+void destroy_cpu(Cpu *cpu) {
+  // TODO: free the cpu
 }
 
 Screen *initialize_screen() {
-  uint8_t *ar = (uint8_t *)malloc(SCREEN_BYTES * sizeof(uint8_t));
+  uint8_t *ar = (uint8_t *)malloc(SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(uint8_t));
   Screen *scr = (Screen *)malloc(sizeof(Screen));
   scr->ar = ar;
   clear_screen(scr);
   return scr;
+}
+
+void destroy_screen(Screen *scr) {
+  // TODO: free the screen
 }
 
 int set_pix(Screen *scr, uint8_t pix, uint8_t pix_x, uint8_t pix_y) {
@@ -100,6 +102,13 @@ int set_pix(Screen *scr, uint8_t pix, uint8_t pix_x, uint8_t pix_y) {
   scr->ar[idx] = pix;
   // TODO: add colision detection here
   return 0;
+}
+
+void clear_screen(Screen *scr) {
+  int i;
+  for(i=0; i<(SCREEN_WIDTH * SCREEN_HEIGHT); i++) {
+    scr->ar[i] = 0x0;
+  }
 }
 
 void print_cpu(Cpu *cpu) {

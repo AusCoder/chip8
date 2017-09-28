@@ -1,4 +1,3 @@
-#include "emulator.h"
 #include "ncurses_io.h"
 
 // ncurses graphics, these could go in a different header file
