@@ -20,7 +20,7 @@ uint8_t load(Memory *mem, address addr) {
   Stack operations.
  */
 void stack_push(Stack *stack, uint16_t v) {
-  // TODO: this should error somehow, if the stack depth is too big
+  // FIXME: this should error somehow, if the stack depth is too big
   (stack->sp)++;
   stack->ar[stack->sp] = v;
 }
@@ -74,7 +74,7 @@ int32_t JMP(Cpu *cpu, uint16_t o) {
 */
 int32_t CALL(Cpu *cpu, uint16_t o) {
   uint16_t subrout_start = o & 0xfff;
-  stack_push(cpu->stack, cpu->pc + 2); // TODO: is add 2 correct here?
+  stack_push(cpu->stack, cpu->pc + 2); // FIXME: is add 2 correct here?
   cpu->pc = subrout_start;
   return 1;
 }
@@ -241,7 +241,7 @@ int32_t SHRVx(Cpu *cpu, uint16_t o) {
   uint8_t x = (o & 0xf00) >> 8;
   uint8_t vx = cpu->reg->ar[x];
   cpu->reg->ar[x] = vx >> 1;
-  cpu->reg->ar[0xf] = vx & 0x1; // TODO: is this right?
+  cpu->reg->ar[0xf] = vx & 0x1; // FIXME: is this right?
   cpu->pc += 2;
   return 1;
 }
@@ -273,7 +273,7 @@ int32_t SHLVx(Cpu *cpu, uint16_t o) {
   uint8_t x = (o & 0xf00) >> 8;
   uint8_t vx = cpu->reg->ar[x];
   cpu->reg->ar[x] = vx << 1;
-  cpu->reg->ar[0xf] = vx & 0x80; // TODO: is this right?
+  cpu->reg->ar[0xf] = vx & 0x80; // FIXME: is this right?
   cpu->pc += 2;
   return 1;
 }
@@ -323,7 +323,7 @@ int32_t JMPV0(Cpu *cpu, uint16_t o) {
 int32_t RANDVx(Cpu *cpu, uint16_t o) {
   uint8_t x = (o & 0xf00) >> 8;
   uint8_t kk = o & 0xff;
-  uint8_t r = (uint8_t)rand(); // TODO: change this random number
+  uint8_t r = (uint8_t)rand(); // FIXME: change this random number
   cpu->reg->ar[x] = kk & r;
   cpu->pc += 2;
   return 1;
@@ -358,22 +358,30 @@ int32_t DRW(Cpu *cpu, Screen *scr, uint16_t o) {
   op_code - ex9e
   Skip next instruction if key with value of Vx is pressed.
 */
-// TODO: Do this keyboard opcode.
-int32_t SKPVx(Cpu *cpu, uint16_t o) {
+int32_t SKPVx(Cpu *cpu, Keyboard *keys, uint16_t o) {
   uint8_t x = (o & 0xf00) >> 8;
-
+  uint8_t v = cpu->reg->ar[x];
+  /* printf("Skip if pressed: 0x%02x\n", v); */
+  // FIXME: is equality a good idea here? hard to debug
+  if (keys->ar[v] == 0x1) {
+    cpu->pc += 2;
+  }
   cpu->pc += 2;
   return 1;
 }
+
 
 /*
   op_code - exa1
   Skip next instruction if key with value of Vx is not pressed.
 */
-// TODO: Do this keyboard opcode.
-int32_t SKNPVx(Cpu *cpu, uint16_t o) {
+int32_t SKNPVx(Cpu *cpu, Keyboard *keys, uint16_t o) {
   uint8_t x = (o & 0xf00) >> 8;
-
+  uint8_t v = cpu->reg->ar[x];
+  // FIXME: is equality a good idea here? hard to debug
+  if (keys->ar[v] == 0x0) {
+    cpu->pc += 2;
+  }
   cpu->pc += 2;
   return 1;
 }
@@ -393,10 +401,14 @@ int32_t LDVxDT(Cpu *cpu, uint16_t o) {
   op_code - fx0a
   Wait for a key press, store it in Vx.
 */
-// TODO: Do this keyboard opcode. need to add blocking.
 int32_t LDVxK(Cpu *cpu, uint16_t o) {
   uint8_t x = (o & 0xf00) >> 8;
-
+  int key_pressed = blocking_keyboard_read();
+  if (key_pressed > 0) {
+    cpu->reg->ar[x] = key_pressed;
+  } else {
+    printf("Unknown blocking key press\n");
+  }
   cpu->pc += 2;
   return 1;
 }
@@ -494,11 +506,15 @@ int32_t LDVxI(Cpu *cpu, uint16_t o) {
 /*
   This executes an op code and changes the cpu state.
 */
-int32_t execute_op_code(Cpu *cpu, Screen *scr, uint16_t o) {
+// FIXME: add tests for this guy
+int32_t execute_op_code(Cpu *cpu, Screen *scr, Keyboard *keys, uint16_t o) {
   int32_t i = 0;
+#ifdef DEBUG
+  printf("Executing opcode - 0x%04x\n", o);
+#endif
   switch (o & 0xf000) {
   case 0x0000: {
-    switch (0 & 0xff) {
+    switch (o & 0xff) {
     case 0xe0:
       i = CLS(cpu, scr);
       break;
@@ -578,11 +594,11 @@ int32_t execute_op_code(Cpu *cpu, Screen *scr, uint16_t o) {
     break;
   case 0xe000: {
     switch (o & 0xff) {
-    case 0x93:
-      i = SKNPVx(cpu, o);
+    case 0x9e:
+      i = SKPVx(cpu, keys, o);
       break;
     case 0xa1:
-      i = SKNPVx(cpu, o);
+      i = SKNPVx(cpu, keys, o);
       break;
     }
     break;

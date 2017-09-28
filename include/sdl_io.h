@@ -16,5 +16,7 @@ void cleanup(SDL_Window *, SDL_Renderer *, SDL_Texture *);
 
 // draw our chip8 screen to sdl
 int draw_screen(SDL_Renderer *, SDL_Texture *, Screen *scr);
+// modify the Keyboard.
+int update_keyboard(Keyboard *);
 
 #endif

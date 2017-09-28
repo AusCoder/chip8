@@ -1,11 +1,12 @@
 #include "emulator.h"
 #include <string.h>
 
-int RAM_SIZE = 4096;
-int REG_SIZE = 16;
-int STACK_SIZE = 16;
-int SCREEN_WIDTH = 64;
-int SCREEN_HEIGHT = 32;
+const int RAM_SIZE = 4096;
+const int REG_SIZE = 16;
+const int STACK_SIZE = 16;
+const int SCREEN_WIDTH = 64;
+const int SCREEN_HEIGHT = 32;
+const int KEYBOARD_SIZE = 16;
 
 uint8_t zero[5] = {0xf0, 0x90, 0x90, 0x90, 0xf0};
 uint8_t one[5] = {0x20, 0x60, 0x20, 0x20, 0x70};
@@ -43,34 +44,43 @@ void load_fonts(Cpu *cpu) {
   memcpy(cpu->mem->ar+75, fifteen, 5);
 }
 
-void reset(Cpu *cpu) {
-  cpu->stack->sp = 0;
-  cpu->pc = 0x200;
-  cpu->delay_timer = 0;
-  cpu->sound_timer = 0;
-  cpu->reg->I = 0;
-  int i;
-  for (i=0; i<REG_SIZE; i++) {
-    cpu->reg->ar[i] = 0;
-  }
-}
-
 Cpu *initialize_cpu() {
   // allocate ram
   uint8_t *ar = (uint8_t *)malloc(RAM_SIZE * sizeof(uint8_t));
+  if (ar == NULL) {
+    return NULL;
+  }
   Memory *mem = (Memory *)malloc(sizeof(Memory));
+  if (mem == NULL) {
+    return NULL;
+  }
   mem->ar = ar;
   // allocate registers
   uint8_t *reg_ar = (uint8_t *)malloc(REG_SIZE * sizeof(uint8_t));
+  if (reg_ar == NULL) {
+    return NULL;
+  }
   Registers *reg = (Registers *)malloc(sizeof(Registers));
+  if (reg == NULL) {
+    return NULL;
+  }
   reg->ar = reg_ar;
   reg->I = 0;
   // allocate stack
   uint16_t *st_ar = (uint16_t *)malloc(STACK_SIZE * sizeof(uint16_t));
+  if (st_ar == NULL) {
+    return NULL;
+  }
   Stack *stack = (Stack *)malloc(sizeof(Stack));
+  if (stack == NULL) {
+    return NULL;
+  }
   stack->ar = st_ar;
   // allocate Cpu
   Cpu *cpu = (Cpu *)malloc(sizeof(Cpu));
+  if (cpu == NULL) {
+    return NULL;
+  }
   cpu->mem = mem;
   cpu->reg = reg;
   cpu->stack = stack;
@@ -83,9 +93,27 @@ void destroy_cpu(Cpu *cpu) {
   // TODO: free the cpu
 }
 
+void reset(Cpu *cpu) {
+  cpu->stack->sp = 0;
+  cpu->pc = 0x200;
+  cpu->delay_timer = 0;
+  cpu->sound_timer = 0;
+  cpu->reg->I = 0;
+  int i;
+  for (i=0; i<REG_SIZE; i++) {
+    cpu->reg->ar[i] = 0;
+  }
+}
+
 Screen *initialize_screen() {
   uint8_t *ar = (uint8_t *)malloc(SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(uint8_t));
+  if (ar == NULL) {
+    return NULL;
+  }
   Screen *scr = (Screen *)malloc(sizeof(Screen));
+  if (scr == NULL) {
+    return NULL;
+  }
   scr->ar = ar;
   clear_screen(scr);
   return scr;
@@ -96,11 +124,11 @@ void destroy_screen(Screen *scr) {
 }
 
 int set_pix(Screen *scr, uint8_t pix, uint8_t pix_x, uint8_t pix_y) {
-  uint32_t idx = pix_y*64 + pix_x;
-  int out;
+  uint32_t idx = pix_y*SCREEN_WIDTH + pix_x;
+  // TODO: add colision detection here
+  /* int out; */
   /* if (scr->ar[]) */
   scr->ar[idx] = pix;
-  // TODO: add colision detection here
   return 0;
 }
 
@@ -110,6 +138,41 @@ void clear_screen(Screen *scr) {
     scr->ar[i] = 0x0;
   }
 }
+
+const int CHIP8_0 = 0x0;  // mapping of keys to array index
+const int CHIP8_1 = 0x1;  // QUESTION: can I define these in a header?
+const int CHIP8_2 = 0x2;
+const int CHIP8_3 = 0x3;
+const int CHIP8_4 = 0x4;
+const int CHIP8_5 = 0x5;
+const int CHIP8_6 = 0x6;
+const int CHIP8_7 = 0x7;
+const int CHIP8_8 = 0x8;
+const int CHIP8_9 = 0x9;
+const int CHIP8_a = 0xa;
+const int CHIP8_b = 0xb;
+const int CHIP8_c = 0xc;
+const int CHIP8_d = 0xd;
+const int CHIP8_e = 0xe;
+const int CHIP8_f = 0xf;
+
+Keyboard *initialize_keyboard() {
+  uint8_t *ar = (uint8_t *)malloc(KEYBOARD_SIZE * sizeof(uint8_t));
+  if (ar == NULL) {
+    return NULL;
+  }
+  Keyboard *keys = (Keyboard *)malloc(sizeof(Keyboard));
+  if (keys == NULL) {
+    return NULL;
+  }
+  keys->ar = ar;
+  return keys;
+}
+
+void log_emulator_error(const char *msg) {
+  printf("Emulator Error: %s\n", msg);
+}
+
 
 void print_cpu(Cpu *cpu) {
   int start_addr = 0x200;
@@ -123,6 +186,19 @@ void print_cpu(Cpu *cpu) {
     }
     printf("\n");
   }
+  printf("** Registers **\n");
+  for (i=0; i<REG_SIZE; i++) {
+    printf(" 0x%02x |", cpu->reg->ar[i]);
+  }
+  printf("\n");
+  printf("** Others **\n");
+  printf(" PC: 0x%04x | Delay Timer: 0x%04x | Sound Timer: 0x%04x\n", cpu->pc, cpu->delay_timer, cpu->sound_timer);
+  /* printf("** Stack **\n"); */
+  /* printf(" sp: 0x%02x ||", cpu->stack->sp); */
+  /* for (i=0; i < 16; i++) { */
+  /*   printf(" 0x%02x ", cpu->stack->ar[i]); */
+  /* } */
+  /* printf("\n"); */
 }
 
 int load_rom(Cpu *cpu, const char *filename) {
