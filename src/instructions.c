@@ -45,6 +45,7 @@ uint16_t stack_top(Stack *stack) {
 */
 int32_t CLS(Cpu *cpu, Screen *scr) {
   clear_screen(scr);
+  scr->redraw = 0x1;
   cpu->pc += 2;
   return 1;
 }
@@ -334,22 +335,26 @@ int32_t RANDVx(Cpu *cpu, uint16_t o) {
   Display n byte sprite starting at memory location I at (Vx, Vy), set Vf = collision.
 */
 int32_t DRW(Cpu *cpu, Screen *scr, uint16_t o) {
-  uint8_t x = (o & 0xf00) >> 8;
-  uint8_t y = (o & 0xf0) >> 4;
-  uint8_t vx = cpu->reg->ar[x];
-  uint8_t vy = cpu->reg->ar[y];
+  uint8_t vx = cpu->reg->ar[(o & 0xf00) >> 8];
+  uint8_t vy = cpu->reg->ar[(o & 0xf0) >> 4];
   uint8_t n = o & 0xf;
-  uint8_t i;
-  for(i=0; i<n; i++) {
-    uint8_t img_byte = load(cpu->mem, cpu->reg->I + i);
-    int c;
-    for(c=0; c<8; c++) {
-      uint8_t pix = (img_byte >> (7-c)) & 0x1;
-      uint8_t pix_x = vx+c;
-      uint8_t pix_y = vy+i;
-      set_pix(scr, pix, pix_x, pix_y); // TODO: need to add collision detection
+  int row;
+  cpu->reg->ar[0xf] = 0;
+  for(row=0; row<n; row++) {
+    uint8_t img_byte = load(cpu->mem, cpu->reg->I + row);
+    int col;
+    for(col=0; col<8; col++) {
+      uint8_t pix = (img_byte >> (7 - col)) & 0x1;
+      if (pix != 0) {
+        int idx = ((vy + row) % SCREEN_HEIGHT) * SCREEN_WIDTH + ((vx + col) % SCREEN_WIDTH);
+        if (scr->ar[idx] != 0) {
+          cpu->reg->ar[0xf] = 1;
+        }
+        scr->ar[idx] ^= 1;
+      }
     }
   }
+  scr->redraw = 0x1;
   cpu->pc+=2;
   return 1;
 }
@@ -363,7 +368,7 @@ int32_t SKPVx(Cpu *cpu, Keyboard *keys, uint16_t o) {
   uint8_t v = cpu->reg->ar[x];
   /* printf("Skip if pressed: 0x%02x\n", v); */
   // FIXME: is equality a good idea here? hard to debug
-  if (keys->ar[v] == 0x1) {
+  if (keys->ar[v] != 0x0) {
     cpu->pc += 2;
   }
   cpu->pc += 2;
@@ -402,6 +407,7 @@ int32_t LDVxDT(Cpu *cpu, uint16_t o) {
   Wait for a key press, store it in Vx.
 */
 int32_t LDVxK(Cpu *cpu, uint16_t o) {
+  printf("Got to blocking keyboard wait\n");
   uint8_t x = (o & 0xf00) >> 8;
   int key_pressed = blocking_keyboard_read();
   if (key_pressed > 0) {
@@ -507,7 +513,7 @@ int32_t LDVxI(Cpu *cpu, uint16_t o) {
   This executes an op code and changes the cpu state.
 */
 // FIXME: add tests for this guy
-int32_t execute_op_code(Cpu *cpu, Screen *scr, Keyboard *keys, uint16_t o) {
+int execute_op_code(Cpu *cpu, Screen *scr, Keyboard *keys, uint16_t o) {
   int32_t i = 0;
 #ifdef DEBUG
   printf("Executing opcode - 0x%04x\n", o);

@@ -8,9 +8,9 @@ int main(int argc, char **argv) {
     return 1;
   }
   Cpu *cpu = initialize_cpu();
-  // TODO: add destroy_screen
   Screen *scr = initialize_screen();
   Keyboard *keys = initialize_keyboard();
+  reset(cpu, scr, keys);
   load_rom(cpu, argv[1]);
 
   /* Start SDL */
@@ -46,20 +46,37 @@ int main(int argc, char **argv) {
   SDL_Delay(1000);
 
   /* Run Emulation Loop */
-  for (int i = 0; i < 1000; ++i) {
-    update_keyboard(keys);
-
+  for (;;) {
     address addr_nxt_instr = cpu->pc;
     uint8_t msb = load(cpu->mem, addr_nxt_instr);
     uint8_t lsb = load(cpu->mem, addr_nxt_instr + 1);
     opcode op_code = msb << 8 | lsb;
     printf("** Opcode - 0x%04x **\n", op_code);
     print_cpu(cpu);
-    execute_op_code(cpu, scr, keys, op_code);
+    int cycles = execute_op_code(cpu, scr, keys, op_code);
+    if (cycles == 0) {
+      printf("Found unimplemented opcode - 0x%04x\n", op_code);
+      break;
+    }
+
+    int quit = update_keyboard(keys);
+    if (quit < 0) {
+      break;
+    }
 
     draw_screen(ren, tex, scr);
 
-    /* SDL_Delay(1); */
+    // Update timers
+    if (cpu->delay_timer > 0) {
+      cpu->delay_timer--;
+    }
+    if (cpu->sound_timer > 0) {
+      if(cpu->sound_timer == 1) {
+        cpu->sound_timer--;
+      }
+    }
+
+    SDL_Delay(10);
   }
 
   cleanup(win, ren, tex);

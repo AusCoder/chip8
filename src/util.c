@@ -85,7 +85,6 @@ Cpu *initialize_cpu() {
   cpu->reg = reg;
   cpu->stack = stack;
   load_fonts(cpu);
-  reset(cpu);
   return cpu;
 }
 
@@ -93,7 +92,7 @@ void destroy_cpu(Cpu *cpu) {
   // TODO: free the cpu
 }
 
-void reset(Cpu *cpu) {
+void reset_cpu(Cpu *cpu) {
   cpu->stack->sp = 0;
   cpu->pc = 0x200;
   cpu->delay_timer = 0;
@@ -115,21 +114,12 @@ Screen *initialize_screen() {
     return NULL;
   }
   scr->ar = ar;
-  clear_screen(scr);
+  scr->redraw = 0x0;
   return scr;
 }
 
 void destroy_screen(Screen *scr) {
   // TODO: free the screen
-}
-
-int set_pix(Screen *scr, uint8_t pix, uint8_t pix_x, uint8_t pix_y) {
-  uint32_t idx = pix_y*SCREEN_WIDTH + pix_x;
-  // TODO: add colision detection here
-  /* int out; */
-  /* if (scr->ar[]) */
-  scr->ar[idx] = pix;
-  return 0;
 }
 
 void clear_screen(Screen *scr) {
@@ -169,10 +159,19 @@ Keyboard *initialize_keyboard() {
   return keys;
 }
 
+void destroy_keyboard(Keyboard *keys) {
+}
+
+void clear_keyboard(Keyboard *keys) {
+  int i;
+  for (i=0; i<KEYBOARD_SIZE; i++) {
+    keys->ar[i] = 0x0;
+  }
+}
+
 void log_emulator_error(const char *msg) {
   printf("Emulator Error: %s\n", msg);
 }
-
 
 void print_cpu(Cpu *cpu) {
   int start_addr = 0x200;
@@ -215,17 +214,9 @@ int load_rom(Cpu *cpu, const char *filename) {
   return 0;
 }
 
-// TODO: write a silly program:
-// set vx = 0.
-// set I = font location of vx.
-// draw digit vx
-// increment vx
-// repeat
-
-uint16_t *counting_program() {
-  uint16_t *prog = (uint16_t *)malloc(100 * sizeof(uint16_t));
-  uint16_t i = 0;
-  prog[i++] = 0x6000;
-  prog[i++] = 0xf029;
-  return prog;
+void reset(Cpu *cpu, Screen *scr, Keyboard *keys) {
+  reset_cpu(cpu);
+  clear_screen(scr);
+  scr->redraw = 0;
+  clear_keyboard(keys);
 }

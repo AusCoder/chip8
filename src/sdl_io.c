@@ -45,28 +45,29 @@ void cleanup(SDL_Window *win, SDL_Renderer *ren, SDL_Texture *tex) {
 }
 
 int draw_screen(SDL_Renderer *ren, SDL_Texture *pixel, Screen *scr) {
-  // FIXME: find somewhere else for these two
-  const int SDL_PIXEL_WIDTH  = SDL_SCREEN_WIDTH / SCREEN_WIDTH;
-  const int SDL_PIXEL_HEIGHT = SDL_SCREEN_HEIGHT / SCREEN_HEIGHT;
+  if (scr->redraw == 0x1) {
+    scr->redraw = 0x0;
+      // FIXME: find somewhere else for these two
+    const int SDL_PIXEL_WIDTH  = SDL_SCREEN_WIDTH / SCREEN_WIDTH;
+    const int SDL_PIXEL_HEIGHT = SDL_SCREEN_HEIGHT / SCREEN_HEIGHT;
 
-  // First clear the renderer
-  SDL_RenderClear(ren);
-  // Now RenderCopy the pixels.
-  int x, y;
-  for (y=0; y < SCREEN_HEIGHT; y++) {
-    for (x=0; x < SCREEN_WIDTH; x++) {
-      int sdl_x = x * SDL_PIXEL_WIDTH;
-      int sdl_y = y * SDL_PIXEL_HEIGHT;
-      int scr_idx = y * SCREEN_WIDTH + x;
-      if (scr->ar[scr_idx] & 0x1) {
-        render_texture(ren, pixel, sdl_x, sdl_y, SDL_PIXEL_WIDTH, SDL_PIXEL_HEIGHT);
-      } else {
-        // don't render anything, maybe replace with a blank pixel?
+    // First clear the renderer
+    SDL_RenderClear(ren);
+    // Now RenderCopy the pixels.
+    int x, y;
+    for (y=0; y < SCREEN_HEIGHT; y++) {
+      for (x=0; x < SCREEN_WIDTH; x++) {
+        int sdl_x = x * SDL_PIXEL_WIDTH;
+        int sdl_y = y * SDL_PIXEL_HEIGHT;
+        int scr_idx = y * SCREEN_WIDTH + x;
+        if (scr->ar[scr_idx] & 0x1) {
+          render_texture(ren, pixel, sdl_x, sdl_y, SDL_PIXEL_WIDTH, SDL_PIXEL_HEIGHT);
+        }
       }
     }
+    // Update the screen
+    SDL_RenderPresent(ren);
   }
-  // Update the screen
-  SDL_RenderPresent(ren);
   return 0;
 }
 
@@ -116,7 +117,13 @@ int translate_sdl_to_chip8_key(int keysym) {
 int update_keyboard(Keyboard *keys) {
   SDL_Event next_event;
   while(SDL_PollEvent(&next_event)) {
+    if (next_event.type == SDL_QUIT) {
+      return -1;
+    }
     if (next_event.type == SDL_KEYDOWN) {
+      if (next_event.key.keysym.sym == SDLK_ESCAPE) {
+        return -1;
+      }
       // set Keyboard to 0x1
       int chip8_key = translate_sdl_to_chip8_key(next_event.key.keysym.sym);
       if (chip8_key > -1) {

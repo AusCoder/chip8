@@ -46,6 +46,7 @@ typedef struct {
 // FIXME: add a changed bool here, so that we only have to redraw the screen if something changed! That would be fun.
 typedef struct {
   uint8_t *ar;           // a 64 * 32 array of bytes to represent the screen
+  uint8_t redraw;        // boolean to specify should redraw
 } Screen;
 
 /*
@@ -96,20 +97,20 @@ typedef uint16_t opcode;
 // FIXME: add typedefs for: memval, regval, stkval, keyval
 
 /* Function that actually execute an op code */
-int32_t execute_op_code(Cpu *, Screen *, Keyboard *, opcode);
+int execute_op_code(Cpu *, Screen *, Keyboard *, opcode);
 
 /* Helper functions for cpu and screen */
 Cpu *initialize_cpu();
 void destroy_cpu(Cpu *);
-void reset(Cpu *);
 Screen *initialize_screen();
 void destroy_screen(Screen *);
-int set_pix(Screen *, uint8_t, uint8_t, uint8_t);
 void clear_screen(Screen *);
 Keyboard *initialize_keyboard();
+void destroy_keyboard(Keyboard *);
 void log_emulator_error(const char *);
 void print_cpu(Cpu *);
 int load_rom(Cpu *, const char *);
+void reset(Cpu *, Screen *, Keyboard *);
 
 /* Blocking keyboard input */
 int blocking_keyboard_read();
