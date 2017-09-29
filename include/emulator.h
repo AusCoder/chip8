@@ -101,16 +101,14 @@ int execute_op_code(Cpu *, Screen *, Keyboard *, opcode);
 
 /* Helper functions for cpu and screen */
 Cpu *initialize_cpu();
-void destroy_cpu(Cpu *);
 Screen *initialize_screen();
-void destroy_screen(Screen *);
 void clear_screen(Screen *);
 Keyboard *initialize_keyboard();
-void destroy_keyboard(Keyboard *);
 void log_emulator_error(const char *);
 void print_cpu(Cpu *);
 int load_rom(Cpu *, const char *);
 void reset(Cpu *, Screen *, Keyboard *);
+void destroy(Cpu *, Screen *, Keyboard *);
 
 /* Blocking keyboard input */
 int blocking_keyboard_read();

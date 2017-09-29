@@ -89,7 +89,13 @@ Cpu *initialize_cpu() {
 }
 
 void destroy_cpu(Cpu *cpu) {
-  // TODO: free the cpu
+  free(cpu->mem->ar);
+  free(cpu->mem);
+  free(cpu->reg->ar);
+  free(cpu->reg);
+  free(cpu->stack->ar);
+  free(cpu->stack);
+  free(cpu);
 }
 
 void reset_cpu(Cpu *cpu) {
@@ -119,7 +125,8 @@ Screen *initialize_screen() {
 }
 
 void destroy_screen(Screen *scr) {
-  // TODO: free the screen
+  free(scr->ar);
+  free(scr);
 }
 
 void clear_screen(Screen *scr) {
@@ -160,6 +167,8 @@ Keyboard *initialize_keyboard() {
 }
 
 void destroy_keyboard(Keyboard *keys) {
+  free(keys->ar);
+  free(keys);
 }
 
 void clear_keyboard(Keyboard *keys) {
@@ -219,4 +228,16 @@ void reset(Cpu *cpu, Screen *scr, Keyboard *keys) {
   clear_screen(scr);
   scr->redraw = 0;
   clear_keyboard(keys);
+}
+
+void destroy(Cpu *cpu, Screen *scr, Keyboard *keys) {
+  if (cpu != NULL) {
+    destroy_cpu(cpu);
+  }
+  if (scr != NULL) {
+    destroy_screen(scr);
+  }
+  if (keys != NULL) {
+    destroy_keyboard(keys);
+  }
 }

@@ -1,4 +1,4 @@
-#include "emulator.h" // how to fix this red?
+#include "emulator.h"
 #include "sdl_io.h"
 
 int main(int argc, char **argv) {
@@ -22,7 +22,6 @@ int main(int argc, char **argv) {
   if (win == NULL) {
     log_sdl_error("SDL_CreateWindow");
     SDL_Quit();
-    destroy_cpu(cpu);
     return 1;
   }
   SDL_Renderer *ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
@@ -30,7 +29,6 @@ int main(int argc, char **argv) {
     SDL_DestroyWindow(win);
     log_sdl_error("SDL_CreateRenderer");
     SDL_Quit();
-    destroy_cpu(cpu);
     return 1;
   }
   // how can I draw a white rectangle with sdl?
@@ -40,7 +38,6 @@ int main(int argc, char **argv) {
     log_sdl_error("load_texture");
     cleanup(win, ren, NULL);
     SDL_Quit();
-    destroy_cpu(cpu);
     return 1;
   }
   SDL_Delay(1000);
@@ -81,7 +78,7 @@ int main(int argc, char **argv) {
 
   cleanup(win, ren, tex);
 	SDL_Quit();
-  destroy_cpu(cpu);
+  destroy(cpu, scr, keys);
 
   printf("Quitting emulator.\n");
   return 0;
