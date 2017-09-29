@@ -1,7 +1,5 @@
 #include "emulator.h"
 
-uint8_t MAX_VAL = (uint8_t)0xffff;
-
 /*
   Stores val in address and returns previous value.
 */
@@ -206,7 +204,7 @@ int32_t ADDVxVy(Cpu *cpu, uint16_t o) {
   uint8_t vx = cpu->reg->ar[x];
   uint8_t vy = cpu->reg->ar[y];
   cpu->reg->ar[x] = vx + vy;
-  if (x > MAX_VAL - y) {
+  if (x > 0xff - y) {
     cpu->reg->ar[0xf] = 1;
   } else {
     cpu->reg->ar[0xf] = 0;
